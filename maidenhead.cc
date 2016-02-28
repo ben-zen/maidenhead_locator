@@ -2,7 +2,9 @@
 // Licensed under the MIT License
 
 #include <iostream>
+#include <cctype>
 #include <math.h>
+#include <stdexcept>
 #include "maidenhead.hh"
 
 double normalize_latitude(double latitude)
@@ -10,7 +12,7 @@ double normalize_latitude(double latitude)
   double norm_lat = latitude + 90;
   if ((norm_lat > 180) || (norm_lat < 0))
   {
-    // throw an exception; invalid latitude?
+    throw std::invalid_argument("normalize_latitude::latitude");
   }
   return norm_lat;
 };
@@ -20,9 +22,55 @@ double normalize_longitude(double longitude)
   double norm_long = longitude + 180;
   if ((norm_long > 360) || (norm_long < 0))
   {
-    // throw an exception; invalid longitude
+    throw std::invalid_argument("normalize_longitude::longitude");
   }
   return norm_long;
+};
+
+char normalize_field(char field_letter)
+{
+  char norm_letter = '\0';
+  if (isalpha(field_letter))
+  {
+    norm_letter = toupper(field_letter);
+    if (!('R' >= norm_letter))
+    {
+      throw std::invalid_argument("normalize_field::field_letter");
+    }
+  }
+  else
+  {
+    throw std::invalid_argument("normalize_field::field_letter");
+  }
+  return norm_letter;
+};
+
+// Yes, I realize this is a wrapped call to `isdigit`.
+char normalize_square(char square_digit)
+{
+  if (!isdigit(square_digit))
+  {
+    throw std::invalid_argument("normalize_square::square_digit");
+  }
+  return square_digit;
+};
+
+char normalize_subsquare(char subsquare_letter)
+{
+  char norm_letter = '\0';
+  if (isalpha(subsquare_letter))
+  {
+    norm_letter = tolower(subsquare_letter);
+    if (!('x' >= norm_letter))
+    {
+      throw std::invalid_argument("normalize_subsquare::subsquare_letter");
+    }
+  }
+  else
+  {
+    throw std::invalid_argument("normalize_subsquare::subsquare_letter");
+  }
+  return norm_letter;
 };
 
 maidenhead_locator::maidenhead_locator(double latitude, double longitude,
@@ -70,24 +118,24 @@ maidenhead_locator::maidenhead_locator(std::string locator)
 {
   if ((locator.length() % 2) || (locator.length() < 4))
   {
-    // throw an exception; maidenhead locators need at least a field and square.
+    throw std::invalid_argument("maidenhead_locator::maidenhead_locator::locator");
   }
 
-  m_field[0] = locator[0];
-  m_field[1] = locator[1];
+  m_field[0] = normalize_field(locator[0]);
+  m_field[1] = normalize_field(locator[1]);
 
-  m_square[0] = locator[2];
-  m_square[1] = locator[3];
+  m_square[0] = normalize_square(locator[2]);
+  m_square[1] = normalize_square(locator[3]);
 
   if (locator.length() > 4)
   {
-    m_subsquare[0] = locator[4];
-    m_subsquare[1] = locator[5];
+    m_subsquare[0] = normalize_subsquare(locator[4]);
+    m_subsquare[1] = normalize_subsquare(locator[5]);
 
     if (locator.length() > 6)
     {
-      m_extendedSquare[0] = locator[6];
-      m_extendedSquare[1] = locator[7];
+      m_extendedSquare[0] = normalize_square(locator[6]);
+      m_extendedSquare[1] = normalize_square(locator[7]);
     }
   }
 };
@@ -115,3 +163,60 @@ std::string maidenhead_locator::to_string()
   }
   return string_form;
 };
+
+double maidenhead_locator::longitude()
+{
+  double longitude = (m_field[0] - 'A') * 20;
+  longitude += (m_square[0] - '0') * 2;
+  if (m_subsquare[0] != '\0')
+  {
+    double longitude_subsquare_measure = 1.0 / 12;
+    longitude += (m_subsquare[0] - 'a') * longitude_subsquare_measure;
+    if (m_extendedSquare[0] != '\0')
+    {
+      longitude += (m_extendedSquare[0] - '0') * (longitude_subsquare_measure / 10);
+      longitude += (longitude_subsquare_measure / 20);
+    }
+    else
+    {
+      // We get the midpoint for this subsquare, since there's no more precision.
+      longitude += (longitude_subsquare_measure / 2);
+    }
+  }
+  else
+  {
+    // We get the midpoint for this square, since there's no higher precision to work with.
+    longitude += 1;
+  }
+  longitude -= 180;
+  return longitude;
+}
+
+
+double maidenhead_locator::latitude()
+{
+  double latitude = (m_field[1] - 'A') * 10;
+  latitude += m_square[1] - '0';
+  if (m_subsquare[1] != '\0')
+  {
+    double latitude_subsquare_measure = 1.0 / 24;
+    latitude += (m_subsquare[1] - 'a') * latitude_subsquare_measure;
+    if (m_extendedSquare[1] != '\0')
+    {
+      latitude += (m_extendedSquare[1] - '0') * (latitude_subsquare_measure / 10);
+      latitude += (latitude_subsquare_measure / 20);
+    }
+    else
+    {
+      // We get the midpoint for this subsquare, since there's no greater precision here.
+      latitude += (latitude_subsquare_measure / 2);
+    }
+  }
+  else
+  {
+    // We get the midpoint for this square, since there's no higher precision to work with.
+    latitude += 0.5;
+  }
+  latitude -= 90.0;
+  return latitude;
+}

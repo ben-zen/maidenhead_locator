@@ -43,6 +43,14 @@ public:
 
   std::string to_string();
 
+  // Note that these operations are lossy, and will return the midpoint of the
+  // locator at its provided precision; there are many points that can return
+  // any given longitude or latitude, and converting one maidenhead locator into
+  // another maidenhead locator can result in a loss of precision. These values
+  // are restored to their non-normalized form.
+  double longitude();
+  double latitude();
+
 private:
   char m_field[2] = {};
   char m_square[2] = {};
