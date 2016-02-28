@@ -39,7 +39,7 @@ public:
   maidenhead_locator(double latitude, double longitude,
 		     bool get_subsquare = false,
 		     bool get_extendedSquare = false);
-  // maidenhead_locator(std::string locator_string);
+  maidenhead_locator(std::string locator_string);
 
   std::string to_string();
 
