@@ -1,7 +1,6 @@
 // Copyright (C) 2016 Ben Lewis KG7VOQ <benjf5+github@gmail.com>
 // Licensed under the MIT License
 
-#include <iostream>
 #include <cctype>
 #include <math.h>
 #include <stdexcept>
@@ -27,7 +26,7 @@ double normalize_longitude(double longitude)
   return norm_long;
 };
 
-char normalize_field(char field_letter)
+char normalize_field(int field_letter)
 {
   char norm_letter = '\0';
   if (isalpha(field_letter))
@@ -46,7 +45,7 @@ char normalize_field(char field_letter)
 };
 
 // Yes, I realize this is a wrapped call to `isdigit`.
-char normalize_square(char square_digit)
+char normalize_square(int square_digit)
 {
   if (!isdigit(square_digit))
   {
@@ -55,7 +54,7 @@ char normalize_square(char square_digit)
   return square_digit;
 };
 
-char normalize_subsquare(char subsquare_letter)
+char normalize_subsquare(int subsquare_letter)
 {
   char norm_letter = '\0';
   if (isalpha(subsquare_letter))
@@ -77,8 +76,6 @@ maidenhead_locator::maidenhead_locator(double latitude, double longitude,
 				       bool get_subsquare,
 				       bool get_extendedSquare)
 {
-  std::cout << "Creating maidenhead_locator for ("
-	    << latitude << ", " << longitude << ")." << std::endl;
   double norm_latitude = normalize_latitude(latitude);
   double norm_longitude = normalize_longitude(longitude);
 
@@ -92,19 +89,15 @@ maidenhead_locator::maidenhead_locator(double latitude, double longitude,
   int longitude_square_degrees = longitude_degrees % 20;
 
   m_square[0] = '0' + (longitude_square_degrees / 2);
-  std::cout << "longitude_square_degrees: " << longitude_square_degrees << std::endl;
   m_square[1] = '0' + latitude_square_degrees;
-  std::cout << "latitude_square_degrees: " << latitude_square_degrees << std::endl;
 
   if (get_subsquare)
   {
     double subsquare_longitude = norm_longitude - ((longitude_degrees / 20) * 20)
       - ((longitude_square_degrees / 2) * 2);
-    std::cout << "subsquare_longitude: " << subsquare_longitude << std::endl;
     m_subsquare[0] = 'a' + static_cast<char>(floor(24 * (subsquare_longitude / 2)));
     double subsquare_latitude = norm_latitude - ((latitude_degrees / 10) * 10)
       - latitude_square_degrees;
-    std::cout << "subsquare_latitude: " << subsquare_latitude << std::endl;
     m_subsquare[1] = 'a' + static_cast<char>(floor(24 * subsquare_latitude));
 
     if (get_extendedSquare)
@@ -140,9 +133,59 @@ maidenhead_locator::maidenhead_locator(std::string locator)
   }
 };
 
+maidenhead_locator::maidenhead_locator(std::wstring locator)
+{
+  if ((locator.length() % 2) || (locator.length() < 4))
+  {
+    throw std::invalid_argument("maidenhead_locator::maidenhead_locator::locator");
+  }
+
+  m_field[0] = normalize_field(locator[0]);
+  m_field[1] = normalize_field(locator[1]);
+
+  m_square[0] = normalize_square(locator[2]);
+  m_square[1] = normalize_square(locator[3]);
+
+  if (locator.length() > 4)
+  {
+    m_subsquare[0] = normalize_subsquare(locator[4]);
+    m_subsquare[1] = normalize_subsquare(locator[5]);
+
+    if (locator.length() > 6)
+    {
+      m_extendedSquare[0] = normalize_square(locator[6]);
+      m_extendedSquare[1] = normalize_square(locator[7]);
+    }
+  }
+};
+
 std::string maidenhead_locator::to_string()
 {
   std::string string_form;
+
+  string_form += m_field[0];
+  string_form += m_field[1];
+
+  string_form += m_square[0];
+  string_form += m_square[1];
+
+  if (m_subsquare[0] != '\0')
+  {
+    string_form += m_subsquare[0];
+    string_form += m_subsquare[1];
+
+    if (m_extendedSquare[0] != '\0')
+    {
+      string_form += m_extendedSquare[0];
+      string_form += m_extendedSquare[1];
+    }
+  }
+  return string_form;
+};
+
+std::wstring maidenhead_locator::to_wstring()
+{
+  std::wstring string_form;
 
   string_form += m_field[0];
   string_form += m_field[1];

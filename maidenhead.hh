@@ -39,9 +39,11 @@ public:
   maidenhead_locator(double latitude, double longitude,
 		     bool get_subsquare = false,
 		     bool get_extendedSquare = false);
-  maidenhead_locator(std::string locator_string);
+  maidenhead_locator(std::string locator);
+  maidenhead_locator(std::wstring locator);
 
   std::string to_string();
+  std::wstring to_wstring();
 
   // Note that these operations are lossy, and will return the midpoint of the
   // locator at its provided precision; there are many points that can return

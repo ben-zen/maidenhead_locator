@@ -27,4 +27,10 @@ int main()
   maidenhead_locator w1aw_location("FN31pr");
   std::cout << "Expected Maidehead locator for W1AW: FN31pr. Actual: "
 	    << w1aw_location.to_string() << std::endl;
+
+  maidenhead_locator w1aw_wide_location(L"FN31pr");
+  std::cout << "Built a locator with a wide string input for W1AW, the string output is: "
+	    << w1aw_wide_location.to_string() << std::endl;
+  std::wcout << L"For the wide string form of the locator for W1AW, the result is: "
+	     << w1aw_wide_location.to_wstring() << std::endl;
 };
